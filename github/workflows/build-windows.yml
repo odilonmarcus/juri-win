@@ -1,0 +1,92 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Show environment
+        shell: pwsh
+        run: |
+          dotnet --info
+
+      - name: Validate repository structure
+        shell: pwsh
+        run: |
+          .\scripts\check-project.ps1
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          dotnet restore .\ConselhoJuridicoIA\ConselhoJuridicoIA.csproj -r win-x64
+
+      - name: Publish self-contained WinUI app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .\artifacts\publish | Out-Null
+          dotnet publish .\ConselhoJuridicoIA\ConselhoJuridicoIA.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -o .\artifacts\publish `
+            -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:PublishTrimmed=false `
+            -p:PublishReadyToRun=false
+
+      - name: Validate publish output
+        shell: pwsh
+        run: |
+          if (!(Test-Path .\artifacts\publish\ConselhoJuridicoIA.exe)) {
+            throw "ConselhoJuridicoIA.exe não foi gerado."
+          }
+          Get-ChildItem .\artifacts\publish | Select-Object -First 30
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path .\artifacts\publish\* -DestinationPath .\artifacts\ConselhoJuridicoIA-portable-x64.zip -Force
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+
+      - name: Build Setup EXE
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) {
+            throw "ISCC.exe não encontrado."
+          }
+          & $iscc "/DMyAppVersion=0.1.${{ github.run_number }}" .\Installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ConselhoJuridicoIA-Windows
+          path: |
+            artifacts/installer/ConselhoJuridicoIA-Setup-x64.exe
+            artifacts/ConselhoJuridicoIA-portable-x64.zip
+          if-no-files-found: error
+          retention-days: 14
