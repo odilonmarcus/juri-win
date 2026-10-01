@@ -1,0 +1,185 @@
+<Window
+    x:Class="ConselhoJuridicoIA.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="MainRoot" Background="{StaticResource AppBackgroundBrush}" Loaded="MainRoot_Loaded">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="66" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="34" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Background="#FFFFFF" Padding="18,0,12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Width="30" Height="30" CornerRadius="8" Background="{StaticResource PrimaryBrush}">
+                    <TextBlock Text="§" Foreground="White" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Conselho Jurídico IA" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Text="GPT + Claude · debate adversarial com relatoria" FontSize="10.5" Foreground="{StaticResource MutedTextBrush}" />
+                </StackPanel>
+            </StackPanel>
+            <Button Grid.Column="1" x:Name="SettingsButton" Content="Configurações" Click="Settings_Click" VerticalAlignment="Center" Margin="0,0,138,0" />
+        </Grid>
+
+        <Grid Grid.Row="1" Padding="18,10,18,8" Background="#FFFFFF">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Profundidade" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextBrush}" />
+            <ComboBox x:Name="DepthComboBox" Grid.Column="1" SelectedIndex="1" VerticalAlignment="Center">
+                <ComboBoxItem Content="Rápida · 2 rodadas" />
+                <ComboBoxItem Content="Completa · 4 rodadas" />
+                <ComboBoxItem Content="Profunda · 6 rodadas" />
+            </ComboBox>
+            <Button x:Name="StartButton" Grid.Column="3" Content="Iniciar debate" Click="StartDebate_Click" Style="{StaticResource AccentButtonStyle}" Padding="18,8" />
+            <Button x:Name="CancelButton" Grid.Column="4" Content="Cancelar" Click="Cancel_Click" IsEnabled="False" Margin="8,0,0,0" />
+            <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <ProgressRing x:Name="BusyRing" Width="22" Height="22" IsActive="False" />
+                <TextBlock x:Name="PhaseText" Text="Pronto" VerticalAlignment="Center" Foreground="{StaticResource MutedTextBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2" Padding="18,10,18,16" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="430" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="210" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="Questão jurídica" FontSize="17" FontWeight="SemiBold" />
+                        <TextBlock Text="Descreva o caso, a dúvida ou a estratégia que deseja testar." Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0" />
+                    </StackPanel>
+
+                    <TextBox x:Name="QuestionTextBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" PlaceholderText="Ex.: Há base para sustentar...? Quais os riscos de...?" />
+
+                    <Grid Grid.Row="2" Margin="0,16,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Documentos" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="PDF, TXT ou RTF" Foreground="{StaticResource MutedTextBrush}" FontSize="11" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Adicionar" Click="AddDocuments_Click" />
+                    </Grid>
+
+                    <ListView x:Name="DocumentsListView" Grid.Row="3" SelectionMode="Single">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="2,7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding DisplayMeta}" Foreground="{StaticResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="×" Click="RemoveDocument_Click" Tag="{Binding}" Width="32" Height="32" Padding="0" Margin="8,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="Debate do conselho" FontSize="17" FontWeight="SemiBold" />
+                        <TextBlock Text="Cada manifestação aparece aqui assim que é concluída." Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                    </StackPanel>
+
+                    <ListView x:Name="DebateListView" Grid.Row="1" SelectionMode="None">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F8FAFC" BorderBrush="#E4E7EC" BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,0,0,10">
+                                    <StackPanel Spacing="7">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" Foreground="#173B64" />
+                                            <TextBlock Grid.Column="1" Text="{Binding SubHeader}" FontSize="10.5" Foreground="{StaticResource MutedTextBrush}" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" IsTextSelectionEnabled="True" LineHeight="20" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="Parecer consolidado" FontSize="17" FontWeight="SemiBold" />
+                        <TextBlock Text="Relatoria final do GPT após considerar o contraditório." Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBox x:Name="OpinionTextBox" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" PlaceholderText="O parecer aparecerá aqui ao final do debate." FontFamily="Segoe UI" />
+
+                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="CopyButton" Grid.Column="0" Content="Copiar" Click="CopyOpinion_Click" IsEnabled="False" />
+                        <Button x:Name="ExportButton" Grid.Column="1" Content="Exportar PDF" Click="ExportPdf_Click" IsEnabled="False" Margin="8,0,0,0" />
+                        <Button Grid.Column="3" Content="Apagar sessão" Click="ClearSession_Click" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="3" Background="#FFFFFF" Padding="18,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Text="Nenhuma sessão é gravada automaticamente." VerticalAlignment="Center" FontSize="10.5" Foreground="{StaticResource MutedTextBrush}" />
+            <TextBlock Grid.Column="1" Text="As respostas de IA devem ser validadas em fontes oficiais antes do uso profissional." VerticalAlignment="Center" FontSize="10.5" Foreground="{StaticResource WarningBrush}" />
+        </Grid>
+    </Grid>
+</Window>
